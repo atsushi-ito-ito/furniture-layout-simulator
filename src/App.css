@@ -1,0 +1,468 @@
+/* リセット */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI",
+    system-ui, sans-serif;
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* レイアウト全体 */
+
+.layout-root {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* サイドバー */
+
+.sidebar {
+  width: 280px;
+  background: #1f2933;
+  color: #e5e7eb;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* 追加 */
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+.app-title {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.sidebar-description {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* サイドバー内ズーム */
+
+.sidebar-zoom {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.sidebar-zoom-label {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
+  color: #9ca3af;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.zoom-btn {
+  border: none;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.zoom-btn:hover {
+  background: #d1d5db;
+}
+
+.zoom-label {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* 家具リスト */
+
+.sidebar-heading {
+  font-size: 14px;
+  margin: 8px 0 4px;
+  font-weight: 600;
+}
+
+.furniture-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  /* 追加 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+
+.furniture-list-item {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.furniture-list-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.furniture-name {
+  font-size: 13px;
+}
+
+.furniture-size {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.btn-add {
+  margin-top: 4px;
+  border: none;
+  border-radius: 9999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #8b6f47;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.btn-add:hover {
+  filter: brightness(0.95);
+}
+
+/* キャンバス側 */
+
+.canvas-panel {
+  flex: 1;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ほぼ全面を間取りに使う */
+
+.room-viewport {
+  flex: 1;
+  border-radius: 16px;
+  background: #ffffff; /* ← 真っ白に変更 */
+  overflow: hidden;
+  position: relative;
+}
+
+/* ズーム＆パン対象 */
+
+.room-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+/* 間取り画像 */
+
+.room-floorplan {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* 家具 */
+
+.furniture-item {
+  position: absolute;
+  transform-origin: top left;
+  /* ▼ 背景・枠・影を消す */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+
+  cursor: grab;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.furniture-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.furniture-label-name {
+  font-size: 11px;
+  color: #fff;
+}
+
+.furniture-label-size {
+  font-size: 10px;
+  color: #e5e7eb;
+}
+
+.furniture-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.furniture-action-btn {
+  border: none;
+  border-radius: 9999px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}
+
+.furniture-action-btn.delete {
+  background: rgba(248, 113, 113, 0.2);
+}
+
+.furniture-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;   /* はみ出さない最大サイズで表示 */
+  pointer-events: none;
+}
+
+/* サムネイルエリア */
+
+.furniture-thumb-wrap {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.furniture-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* テキスト縦並び */
+
+.furniture-list-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 右下コントローラ */
+
+.controller-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.controller-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.controller-title {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.controller-status {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.controller-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.controller-btn {
+  flex: 1;
+  border-radius: 9999px;
+  border: none;
+  padding: 4px 0;
+  font-size: 11px;
+  cursor: pointer;
+  background: #0f766e;
+  color: #f9fafb;
+}
+
+.controller-btn.danger {
+  background: #f97373;
+}
+
+.controller-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 画像なし家具のプレースホルダー長方形 */
+
+.furniture-rect {
+  width: 100%;
+  height: 100%;
+  background: rgba(56, 189, 248, 0.25); /* 薄い水色 */
+  border: 1px solid rgba(56, 189, 248, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.furniture-rect-label {
+  font-size: 10px;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* プラン情報（サイドバー上部） */
+
+.plan-info {
+  margin-bottom: 12px;
+}
+
+.plan-type {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.plan-detail {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #cbd5f5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 間取り選択ボタン */
+
+.plan-select-btn {
+  margin-bottom: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #8b6f47;
+  color: #ffffff;
+}
+
+.plan-select-btn:hover {
+  filter: brightness(0.95);
+}
+
+/* ========== 間取り選択モーダル ========== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* コントローラより前面に */
+}
+
+.modal {
+  width: 360px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  overflow-y: auto;
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 間取り一覧リスト */
+
+.plan-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plan-item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.plan-item:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.plan-item-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.plan-item-detail {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
