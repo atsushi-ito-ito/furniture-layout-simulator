@@ -34,6 +34,22 @@ export type Room = {
   heightMm: number;
 };
 
+/* ======================
+   計測ツール型定義
+====================== */
+export type MeasureType = "h" | "v" | "free";
+
+export type Measurement = {
+  id: string;
+  type: MeasureType;
+  x1Mm: number;
+  y1Mm: number;
+  x2Mm: number;
+  y2Mm: number;
+};
+
+export type ActiveTool = "select" | "measure-h" | "measure-v" | "measure-free";
+
 export type FurnitureMaster = {
   id: string;
   name: string;
@@ -41,6 +57,7 @@ export type FurnitureMaster = {
   heightMm: number;
   category: "sofa" | "table" | "bed" | "other";
   img?: string;
+  shape?: "rect" | "circle"; // img未使用時のカスタム形状
 };
 
 export type PlacedFurniture = {
@@ -283,9 +300,32 @@ const App: React.FC = () => {
       category: "other",
       img: tv50Img,
     },
+
+    // フリーボックス（画像なし・任意サイズ変更用）
+    {
+      id: "free-rect",
+      name: "フリーボックス（四角）",
+      widthMm: 1000,
+      heightMm: 1000,
+      category: "other",
+      shape: "rect",
+    },
+    {
+      id: "free-circle",
+      name: "フリーボックス（丸）",
+      widthMm: 1000,
+      heightMm: 1000,
+      category: "other",
+      shape: "circle",
+    },
   ]);
 
   const [placed, setPlaced] = useState<PlacedFurniture[]>([]);
+
+  // 計測ツール
+  const [measurements,  setMeasurements] = useState<Measurement[]>([]);
+  const [activeTool,    setActiveTool]   = useState<ActiveTool>("select");
+  const [snapEnabled,   setSnapEnabled]  = useState(true);
 
   // ズーム
   const BASE_ZOOM = 3.0;
@@ -361,6 +401,13 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
     setPlaced((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const handleAddMeasurement = (m: Measurement) => {
+    setMeasurements((prev) => [...prev, m]);
+  };
+  const handleRemoveMeasurement = (id: string) => {
+    setMeasurements((prev) => prev.filter((m) => m.id !== id));
+  };
+
   return (
     <div className="layout-root">
       {/* 左：サイドバー */}
@@ -396,20 +443,67 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           </div>
         </div>
 
+        {/* ─── 計測ツール ─── */}
+        <div className="measure-section">
+          <div className="measure-section-label">計測ツール</div>
+          <div className="measure-tool-grid">
+            <button
+              className={`measure-tool-btn${activeTool === "select" ? " active" : ""}`}
+              onClick={() => setActiveTool("select")}
+              title="選択モード（家具の移動など）"
+            >✦ 選択</button>
+            <button
+              className={`measure-tool-btn${activeTool === "measure-h" ? " active" : ""}`}
+              onClick={() => setActiveTool("measure-h")}
+              title="水平方向を計測"
+            >↔ 水平</button>
+            <button
+              className={`measure-tool-btn${activeTool === "measure-v" ? " active" : ""}`}
+              onClick={() => setActiveTool("measure-v")}
+              title="垂直方向を計測"
+            >↕ 垂直</button>
+            <button
+              className={`measure-tool-btn${activeTool === "measure-free" ? " active" : ""}`}
+              onClick={() => setActiveTool("measure-free")}
+              title="フリー方向（斜め含む）を計測"
+            >⤡ フリー</button>
+          </div>
+          <label className="snap-toggle-label">
+            <input
+              type="checkbox"
+              checked={snapEnabled}
+              onChange={(e) => setSnapEnabled(e.target.checked)}
+            />
+            <span>壁スナップ (10mm)</span>
+          </label>
+          {measurements.length > 0 && (
+            <button
+              className="clear-measure-btn"
+              onClick={() => setMeasurements([])}
+            >
+              計測をすべて削除
+            </button>
+          )}
+        </div>
+
         <h2 className="sidebar-heading">家具リスト</h2>
         <ul className="furniture-list">
           {masters.map((m) => (
             <li key={m.id} className="furniture-list-item">
               <div className="furniture-list-item-main">
-                {m.img && (
-                  <div className="furniture-thumb-wrap">
+                <div className="furniture-thumb-wrap">
+                  {m.img ? (
                     <img
                       src={m.img}
                       alt={m.name}
                       className="furniture-thumb"
                     />
-                  </div>
-                )}
+                  ) : m.shape === "circle" ? (
+                    <div className="thumb-circle" />
+                  ) : (
+                    <div className="thumb-rect" />
+                  )}
+                </div>
 
                 <div className="furniture-list-text">
                   <span className="furniture-name">{m.name}</span>
@@ -449,6 +543,11 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           onRotate={handleRotateFurniture}
           onRemove={handleRemoveFurniture}
           onResize={handleResizeFurniture}
+          measurements={measurements}
+          activeTool={activeTool}
+          snapEnabled={snapEnabled}
+          onMeasurementAdd={handleAddMeasurement}
+          onMeasurementRemove={handleRemoveMeasurement}
         />
 
         {/* 間取り選択モーダル */}

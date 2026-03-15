@@ -246,7 +246,7 @@ body {
 .furniture-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;   /* はみ出さない最大サイズで表示 */
+  object-fit: fill;   /* 指定サイズいっぱいに引き伸ばして表示 */
   pointer-events: none;
 }
 
@@ -338,25 +338,216 @@ body {
   cursor: default;
 }
 
-/* 画像なし家具のプレースホルダー長方形 */
+.controller-btn.reset {
+  background: #6b7280;
+  width: 100%;
+}
 
+/* ─── サイズ調整UI ─── */
+
+.controller-size-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.controller-size-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.controller-size-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.controller-size-row-label {
+  font-size: 10px;
+  color: #374151;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.controller-size-input-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.controller-size-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  padding: 3px 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.controller-size-input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.size-step-btn {
+  border: none;
+  background: #e5e7eb;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: #374151;
+  font-weight: 600;
+}
+
+.size-step-btn:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.size-step-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ─── フリーボックス（四角） ─── */
 .furniture-rect {
   width: 100%;
   height: 100%;
-  background: rgba(56, 189, 248, 0.25); /* 薄い水色 */
-  border: 1px solid rgba(56, 189, 248, 0.8);
+  background: rgba(56, 189, 248, 0.20);
+  border: 2px solid rgba(56, 189, 248, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
 }
 
-.furniture-rect-label {
+/* ─── フリーボックス（丸） ─── */
+.furniture-circle {
+  width: 100%;
+  height: 100%;
+  background: rgba(167, 243, 208, 0.30);
+  border: 2px solid rgba(52, 211, 153, 0.85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 四角・丸の内部ラベル */
+.furniture-shape-label {
   font-size: 10px;
   color: #0f172a;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.75);
   padding: 2px 4px;
   border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ─── サイドバーサムネイル（形状） ─── */
+.thumb-rect {
+  width: 26px;
+  height: 22px;
+  background: rgba(56, 189, 248, 0.30);
+  border: 2px solid rgba(56, 189, 248, 0.9);
+  border-radius: 3px;
+}
+
+.thumb-circle {
+  width: 26px;
+  height: 26px;
+  background: rgba(167, 243, 208, 0.35);
+  border: 2px solid rgba(52, 211, 153, 0.9);
+  border-radius: 50%;
+}
+
+/* ================================================
+   計測ツール セクション
+================================================ */
+
+.measure-section {
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.measure-section-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* 2×2 グリッド */
+.measure-tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.measure-tool-btn {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d1d5db;
+  padding: 5px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.measure-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.measure-tool-btn.active {
+  background: #f97316;
+  border-color: #f97316;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* スナップトグル */
+.snap-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #d1d5db;
+  cursor: pointer;
+  user-select: none;
+}
+
+.snap-toggle-label input[type="checkbox"] {
+  accent-color: #f97316;
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+}
+
+/* 全削除ボタン */
+.clear-measure-btn {
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  border-radius: 6px;
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.clear-measure-btn:hover {
+  background: rgba(249, 115, 22, 0.25);
 }
 
 /* プラン情報（サイドバー上部） */
