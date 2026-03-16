@@ -118,17 +118,14 @@ export const RoomCanvas: React.FC<Props> = ({
   const WALL_CANVAS_SCALE = 2;   // 2倍精度でオフスクリーンレンダリング
   const SNAP_SCREEN_PX    = 20;  // スナップ検出半径（スクリーンpx）
 
-  /** 壁ピクセルへのスナップを試みる（なければ snapped:false を返す） */
+  /** 壁ピクセルへのスナップを試みる（計測ツール用・1点） */
   const snapToWall = (xMm: number, yMm: number): { xMm: number; yMm: number; snapped: boolean } => {
     const canvasW    = wallCanvasWRef.current;
     const canvasH    = wallCanvasHRef.current;
     const wallPixels = wallPixelsRef.current;
     if (wallPixels.size === 0 || canvasW === 0) return { xMm, yMm, snapped: false };
 
-    // スクリーンpx → キャンバスpx のスナップ閾値
     const threshPx = Math.ceil((SNAP_SCREEN_PX / zoom) * WALL_CANVAS_SCALE);
-
-    // mm → キャンバスpx 変換
     const cx = Math.round(mmToPx(xMm) * WALL_CANVAS_SCALE);
     const cy = Math.round(mmToPx(yMm) * WALL_CANVAS_SCALE);
 
@@ -142,21 +139,66 @@ export const RoomCanvas: React.FC<Props> = ({
         if (nx < 0 || ny < 0 || nx >= canvasW || ny >= canvasH) continue;
         if (!wallPixels.has(ny * canvasW + nx)) continue;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestCx = nx;
-          bestCy = ny;
+        if (dist < bestDist) { bestDist = dist; bestCx = nx; bestCy = ny; }
+      }
+    }
+    if (bestDist <= threshPx) {
+      return { xMm: pxToMm(bestCx / WALL_CANVAS_SCALE), yMm: pxToMm(bestCy / WALL_CANVAS_SCALE), snapped: true };
+    }
+    return { xMm, yMm, snapped: false };
+  };
+
+  /**
+   * 家具の壁スナップ
+   * 4コーナー＋4辺中点を検査し、最も近い壁ピクセルへスナップ。
+   * スナップした点が家具上の位置を保ちつつ、家具全体を移動させる。
+   */
+  const snapFurnitureToWall = (
+    xMm: number, yMm: number,   // 家具の左上(top-left)位置
+    wMm: number, hMm: number,   // 家具サイズ（軸合わせ）
+  ): { xMm: number; yMm: number; snapped: boolean } => {
+    const canvasW    = wallCanvasWRef.current;
+    const canvasH    = wallCanvasHRef.current;
+    const wallPixels = wallPixelsRef.current;
+    if (wallPixels.size === 0 || canvasW === 0) return { xMm, yMm, snapped: false };
+
+    // 検査点: [家具上の実座標, top-leftからのオフセット]
+    // オフセット = 検査点 - top-left → スナップ後 top-left = snapPoint - offset
+    const pts = [
+      { px: xMm,          py: yMm,          ox: 0,        oy: 0 },        // 左上
+      { px: xMm + wMm,    py: yMm,          ox: wMm,      oy: 0 },        // 右上
+      { px: xMm,          py: yMm + hMm,    ox: 0,        oy: hMm },      // 左下
+      { px: xMm + wMm,    py: yMm + hMm,    ox: wMm,      oy: hMm },      // 右下
+      { px: xMm + wMm/2,  py: yMm,          ox: wMm/2,    oy: 0 },        // 上辺中点
+      { px: xMm + wMm/2,  py: yMm + hMm,    ox: wMm/2,    oy: hMm },      // 下辺中点
+      { px: xMm,          py: yMm + hMm/2,  ox: 0,        oy: hMm/2 },    // 左辺中点
+      { px: xMm + wMm,    py: yMm + hMm/2,  ox: wMm,      oy: hMm/2 },    // 右辺中点
+    ];
+
+    const threshPx = Math.ceil((SNAP_SCREEN_PX / zoom) * WALL_CANVAS_SCALE);
+    let bestDist = threshPx + 1;
+    let bestNewX = xMm, bestNewY = yMm;
+
+    for (const pt of pts) {
+      const cx = Math.round(mmToPx(pt.px) * WALL_CANVAS_SCALE);
+      const cy = Math.round(mmToPx(pt.py) * WALL_CANVAS_SCALE);
+      for (let dy = -threshPx; dy <= threshPx; dy++) {
+        for (let dx = -threshPx; dx <= threshPx; dx++) {
+          const nx = cx + dx; const ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= canvasW || ny >= canvasH) continue;
+          if (!wallPixels.has(ny * canvasW + nx)) continue;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            // スナップ先 mm 座標 → top-left を逆算
+            bestNewX = pxToMm(nx / WALL_CANVAS_SCALE) - pt.ox;
+            bestNewY = pxToMm(ny / WALL_CANVAS_SCALE) - pt.oy;
+          }
         }
       }
     }
 
-    if (bestDist <= threshPx) {
-      return {
-        xMm: pxToMm(bestCx / WALL_CANVAS_SCALE),
-        yMm: pxToMm(bestCy / WALL_CANVAS_SCALE),
-        snapped: true,
-      };
-    }
+    if (bestDist <= threshPx) return { xMm: bestNewX, yMm: bestNewY, snapped: true };
     return { xMm, yMm, snapped: false };
   };
 
@@ -403,8 +445,22 @@ export const RoomCanvas: React.FC<Props> = ({
       const localX = (screenX - pan.x) / zoom;
       const localY = (screenY - pan.y) / zoom;
 
-      const xMm = pxToMm(localX);
-      const yMm = pxToMm(localY);
+      let xMm = pxToMm(localX);
+      let yMm = pxToMm(localY);
+
+      if (snapEnabled) {
+        const m = masters.find((mm) => mm.id === f.masterId);
+        const wMm = f.widthMm ?? m?.widthMm ?? 0;
+        const hMm = f.heightMm ?? m?.heightMm ?? 0;
+        const wall = snapFurnitureToWall(xMm, yMm, wMm, hMm);
+        if (wall.snapped) {
+          xMm = wall.xMm;
+          yMm = wall.yMm;
+        } else {
+          xMm = snapMm(xMm);
+          yMm = snapMm(yMm);
+        }
+      }
 
       onMove(f.id, xMm, yMm);
     }
