@@ -48,7 +48,8 @@ type Props = {
   // 計測ツール
   measurements: Measurement[];
   activeTool: ActiveTool;
-  snapEnabled: boolean;
+  wallSnapEnabled: boolean;
+  fineMode: boolean;
   onMeasurementAdd: (m: Measurement) => void;
   onMeasurementRemove: (id: string) => void;
   showTraffic: boolean;
@@ -98,7 +99,8 @@ export const RoomCanvas: React.FC<Props> = ({
   onResize,
   measurements,
   activeTool,
-  snapEnabled,
+  wallSnapEnabled,
+  fineMode,
   onMeasurementAdd,
   onMeasurementRemove,
   showTraffic,
@@ -236,11 +238,12 @@ export const RoomCanvas: React.FC<Props> = ({
     return { xMm, yMm, snapped: false };
   };
 
-  // スナップ（10mm グリッド）
+  // スナップ（10mm グリッド）— fineMode の時はグリッドスナップしない
   const SNAP_MM = 10;
-  const snapMm = (v: number) => snapEnabled ? Math.round(v / SNAP_MM) * SNAP_MM : v;
+  const snapMm = (v: number) => !fineMode ? Math.round(v / SNAP_MM) * SNAP_MM : v;
 
-  // マウス座標 → room mm 変換（壁スナップ優先、次いでグリッドスナップ）
+  // マウス座標 → room mm 変換
+  // 優先順位: 壁スナップ → 家具スナップ → 1mmモードならそのまま / それ以外は10mmグリッド
   const toRoomMm = (e: React.MouseEvent): { xMm: number; yMm: number; snapped: boolean } | null => {
     const rect = viewportRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -249,14 +252,13 @@ export const RoomCanvas: React.FC<Props> = ({
     const rawXMm = pxToMm(localX);
     const rawYMm = pxToMm(localY);
 
-    if (snapEnabled) {
+    if (wallSnapEnabled) {
       const wall = snapToWall(rawXMm, rawYMm);
       if (wall.snapped) return wall;
       const furn = snapToFurniture(rawXMm, rawYMm);
       if (furn.snapped) return furn;
-      return { xMm: snapMm(rawXMm), yMm: snapMm(rawYMm), snapped: false };
     }
-    return { xMm: rawXMm, yMm: rawYMm, snapped: false };
+    return { xMm: snapMm(rawXMm), yMm: snapMm(rawYMm), snapped: false };
   };
 
   // ツール切り替え時に途中計測をキャンセル
@@ -542,7 +544,7 @@ export const RoomCanvas: React.FC<Props> = ({
       let xMm = pxToMm(localX);
       let yMm = pxToMm(localY);
 
-      if (snapEnabled) {
+      if (wallSnapEnabled) {
         const m = masters.find((mm) => mm.id === f.masterId);
         const wMm = f.widthMm ?? m?.widthMm ?? 0;
         const hMm = f.heightMm ?? m?.heightMm ?? 0;
@@ -554,6 +556,9 @@ export const RoomCanvas: React.FC<Props> = ({
           xMm = snapMm(xMm);
           yMm = snapMm(yMm);
         }
+      } else {
+        xMm = snapMm(xMm);
+        yMm = snapMm(yMm);
       }
 
       onMove(f.id, xMm, yMm);
@@ -631,7 +636,7 @@ export const RoomCanvas: React.FC<Props> = ({
           return (
             <div
               key={f.id}
-              className="furniture-item"
+              className={`furniture-item${selectedId === f.id ? " selected" : ""}`}
               style={{
                 width: w,
                 height: h,

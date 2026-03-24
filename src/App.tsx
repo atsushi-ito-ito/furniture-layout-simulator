@@ -324,9 +324,10 @@ const App: React.FC = () => {
 
   // 計測ツール
   const [measurements,  setMeasurements] = useState<Measurement[]>([]);
-  const [activeTool,    setActiveTool]   = useState<ActiveTool>("select");
-  const [snapEnabled,   setSnapEnabled]  = useState(true);
-  const [showTraffic,   setShowTraffic]  = useState(false);
+  const [activeTool,      setActiveTool]     = useState<ActiveTool>("select");
+  const [wallSnapEnabled, setWallSnapEnabled] = useState(true);
+  const [fineMode,        setFineMode]        = useState(false);
+  const [showTraffic,     setShowTraffic]     = useState(false);
 
   // ズーム
   const BASE_ZOOM = 3.0;
@@ -472,10 +473,18 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           <label className="snap-toggle-label">
             <input
               type="checkbox"
-              checked={snapEnabled}
-              onChange={(e) => setSnapEnabled(e.target.checked)}
+              checked={wallSnapEnabled}
+              onChange={(e) => setWallSnapEnabled(e.target.checked)}
             />
-            <span>壁スナップ (10mm)</span>
+            <span>壁スナップ</span>
+          </label>
+          <label className="snap-toggle-label">
+            <input
+              type="checkbox"
+              checked={fineMode}
+              onChange={(e) => setFineMode(e.target.checked)}
+            />
+            <span>1mm単位計測</span>
           </label>
           {measurements.length > 0 && (
             <button
@@ -565,7 +574,8 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           onResize={handleResizeFurniture}
           measurements={measurements}
           activeTool={activeTool}
-          snapEnabled={snapEnabled}
+          wallSnapEnabled={wallSnapEnabled}
+          fineMode={fineMode}
           onMeasurementAdd={handleAddMeasurement}
           onMeasurementRemove={handleRemoveMeasurement}
           showTraffic={showTraffic}

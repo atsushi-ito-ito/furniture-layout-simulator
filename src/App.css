@@ -26,10 +26,10 @@ body {
   width: 280px;
   background: #1f2933;
   color: #e5e7eb;
-  padding: 20px 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 
   /* 追加 */
   height: 100vh;
@@ -51,8 +51,8 @@ body {
 /* サイドバー内ズーム */
 
 .sidebar-zoom {
-  margin-top: 8px;
-  margin-bottom: 8px;
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 .sidebar-zoom-label {
@@ -91,7 +91,7 @@ body {
 
 .sidebar-heading {
   font-size: 14px;
-  margin: 8px 0 4px;
+  margin: 4px 0 2px;
   font-weight: 600;
 }
 
@@ -205,6 +205,12 @@ body {
   justify-content: center;
   align-items: center;
   padding: 0;
+}
+
+/* 選択中の家具 */
+.furniture-item.selected {
+  box-shadow: 0 0 0 2px #f97316, 0 0 0 5px rgba(249, 115, 22, 0.28);
+  border-radius: 2px;
 }
 
 .furniture-label {
@@ -473,10 +479,10 @@ body {
 
 .measure-section {
   border-top: 1px solid rgba(148, 163, 184, 0.3);
-  padding-top: 10px;
+  padding-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .measure-section-label {
@@ -578,7 +584,7 @@ body {
 /* プラン情報（サイドバー上部） */
 
 .plan-info {
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .plan-type {
@@ -598,12 +604,12 @@ body {
 /* 間取り選択ボタン */
 
 .plan-select-btn {
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   width: 100%;
   border: none;
   border-radius: 9999px;
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   background: #8b6f47;
