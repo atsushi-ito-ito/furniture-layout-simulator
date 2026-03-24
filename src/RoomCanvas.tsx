@@ -51,6 +51,7 @@ type Props = {
   snapEnabled: boolean;
   onMeasurementAdd: (m: Measurement) => void;
   onMeasurementRemove: (id: string) => void;
+  showTraffic: boolean;
 };
 
 type DragState =
@@ -100,6 +101,7 @@ export const RoomCanvas: React.FC<Props> = ({
   snapEnabled,
   onMeasurementAdd,
   onMeasurementRemove,
+  showTraffic,
 }) => {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -110,6 +112,9 @@ export const RoomCanvas: React.FC<Props> = ({
   // 計測ツール ローカルステート
   const [placing, setPlacing]      = useState<{ x1Mm: number; y1Mm: number; snapped: boolean } | null>(null);
   const [previewEnd, setPreviewEnd] = useState<{ xMm: number; yMm: number; snapped: boolean } | null>(null);
+
+  // 動線キャンバス
+  const trafficCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // ─── 壁スナップ用 ───
   const wallPixelsRef  = useRef<Set<number>>(new Set());
@@ -145,6 +150,35 @@ export const RoomCanvas: React.FC<Props> = ({
     if (bestDist <= threshPx) {
       return { xMm: pxToMm(bestCx / WALL_CANVAS_SCALE), yMm: pxToMm(bestCy / WALL_CANVAS_SCALE), snapped: true };
     }
+    return { xMm, yMm, snapped: false };
+  };
+
+  /** 配置済み家具へのスナップ（計測ツール用：4隅＋4辺中点） */
+  const snapToFurniture = (xMm: number, yMm: number): { xMm: number; yMm: number; snapped: boolean } => {
+    const threshMm = pxToMm(SNAP_SCREEN_PX / zoom);
+    let bestDist = threshMm + 1;
+    let bestX = xMm, bestY = yMm;
+
+    for (const f of placed) {
+      const m = masters.find((mm) => mm.id === f.masterId);
+      const wMm = f.widthMm ?? m?.widthMm ?? 0;
+      const hMm = f.heightMm ?? m?.heightMm ?? 0;
+      const snapPts = [
+        { x: f.xMm,           y: f.yMm },
+        { x: f.xMm + wMm,     y: f.yMm },
+        { x: f.xMm,           y: f.yMm + hMm },
+        { x: f.xMm + wMm,     y: f.yMm + hMm },
+        { x: f.xMm + wMm / 2, y: f.yMm },
+        { x: f.xMm + wMm / 2, y: f.yMm + hMm },
+        { x: f.xMm,           y: f.yMm + hMm / 2 },
+        { x: f.xMm + wMm,     y: f.yMm + hMm / 2 },
+      ];
+      for (const pt of snapPts) {
+        const dist = Math.sqrt((xMm - pt.x) ** 2 + (yMm - pt.y) ** 2);
+        if (dist < bestDist) { bestDist = dist; bestX = pt.x; bestY = pt.y; }
+      }
+    }
+    if (bestDist <= threshMm) return { xMm: bestX, yMm: bestY, snapped: true };
     return { xMm, yMm, snapped: false };
   };
 
@@ -218,6 +252,8 @@ export const RoomCanvas: React.FC<Props> = ({
     if (snapEnabled) {
       const wall = snapToWall(rawXMm, rawYMm);
       if (wall.snapped) return wall;
+      const furn = snapToFurniture(rawXMm, rawYMm);
+      if (furn.snapped) return furn;
       return { xMm: snapMm(rawXMm), yMm: snapMm(rawYMm), snapped: false };
     }
     return { xMm: rawXMm, yMm: rawYMm, snapped: false };
@@ -262,6 +298,64 @@ export const RoomCanvas: React.FC<Props> = ({
 
   // planId に応じて画像を選択
   const floorplanImg = FLOORPLAN_IMAGES[planId] ?? FLOORPLAN_IMAGES["A"];
+
+  // ─── 動線ヒートマップ描画 ───
+  useEffect(() => {
+    const canvas = trafficCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!showTraffic) return;
+
+    const GRID_MM = 100;
+    const cellPx  = mmToPx(GRID_MM);
+    const r       = cellPx * 0.40;
+
+    const canvasW    = wallCanvasWRef.current;
+    const canvasH    = wallCanvasHRef.current;
+    const wallPixels = wallPixelsRef.current;
+
+    for (let yMm = GRID_MM / 2; yMm < room.heightMm; yMm += GRID_MM) {
+      for (let xMm = GRID_MM / 2; xMm < room.widthMm; xMm += GRID_MM) {
+        if (canvasW > 0) {
+          const wx = Math.round(mmToPx(xMm) * WALL_CANVAS_SCALE);
+          const wy = Math.round(mmToPx(yMm) * WALL_CANVAS_SCALE);
+          if (wx >= 0 && wy >= 0 && wx < canvasW && wy < canvasH &&
+              wallPixels.has(wy * canvasW + wx)) continue;
+        }
+        let inside = false;
+        for (const f of placed) {
+          const m   = masters.find((mm) => mm.id === f.masterId);
+          const wMm = f.widthMm  ?? m?.widthMm  ?? 0;
+          const hMm = f.heightMm ?? m?.heightMm ?? 0;
+          if (xMm >= f.xMm && xMm <= f.xMm + wMm &&
+              yMm >= f.yMm && yMm <= f.yMm + hMm) { inside = true; break; }
+        }
+        if (inside) continue;
+
+        let minDist = Math.min(xMm, yMm, room.widthMm - xMm, room.heightMm - yMm);
+        for (const f of placed) {
+          const m   = masters.find((mm) => mm.id === f.masterId);
+          const wMm = f.widthMm  ?? m?.widthMm  ?? 0;
+          const hMm = f.heightMm ?? m?.heightMm ?? 0;
+          const dx  = Math.max(f.xMm - xMm, 0, xMm - (f.xMm + wMm));
+          const dy  = Math.max(f.yMm - yMm, 0, yMm - (f.yMm + hMm));
+          minDist   = Math.min(minDist, Math.sqrt(dx * dx + dy * dy));
+        }
+
+        let color: string;
+        if      (minDist >= 900) color = "rgba(34,197,94,0.55)";
+        else if (minDist >= 600) color = "rgba(251,191,36,0.60)";
+        else                     color = "rgba(239,68,68,0.55)";
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(mmToPx(xMm), mmToPx(yMm), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }, [showTraffic, placed, room, masters, roomW, roomH]);
 
   // 間取り画像が変わったらダークピクセル（壁）を抽出
   useEffect(() => {
@@ -493,6 +587,21 @@ export const RoomCanvas: React.FC<Props> = ({
           src={floorplanImg}
           alt={`floorplan-${planId}`}
           className="room-floorplan"
+        />
+
+        {/* ─── 動線ヒートマップ ─── */}
+        <canvas
+          ref={trafficCanvasRef}
+          width={roomW}
+          height={roomH}
+          style={{
+            position: "absolute",
+            top: 0, left: 0,
+            width: roomW,
+            height: roomH,
+            pointerEvents: "none",
+            zIndex: 5,
+          }}
         />
 
         {/* ─── 計測レイヤー（SVG） ─── */}

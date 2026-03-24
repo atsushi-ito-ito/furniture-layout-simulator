@@ -326,6 +326,7 @@ const App: React.FC = () => {
   const [measurements,  setMeasurements] = useState<Measurement[]>([]);
   const [activeTool,    setActiveTool]   = useState<ActiveTool>("select");
   const [snapEnabled,   setSnapEnabled]  = useState(true);
+  const [showTraffic,   setShowTraffic]  = useState(false);
 
   // ズーム
   const BASE_ZOOM = 3.0;
@@ -486,6 +487,25 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           )}
         </div>
 
+        {/* ─── 動線表示 ─── */}
+        <div className="measure-section">
+          <div className="measure-section-label">動線チェック</div>
+          <button
+            className={`measure-tool-btn traffic-toggle-btn${showTraffic ? " active" : ""}`}
+            style={{ width: "100%" }}
+            onClick={() => setShowTraffic((v) => !v)}
+          >
+            {showTraffic ? "🟢 動線表示 ON" : "⬜ 動線表示 OFF"}
+          </button>
+          {showTraffic && (
+            <div className="traffic-legend">
+              <span className="traffic-legend-item green">●</span><span>余裕（900mm〜）</span>
+              <span className="traffic-legend-item yellow">●</span><span>やや狭い（600〜900mm）</span>
+              <span className="traffic-legend-item red">●</span><span>狭い（〜600mm）</span>
+            </div>
+          )}
+        </div>
+
         <h2 className="sidebar-heading">家具リスト</h2>
         <ul className="furniture-list">
           {masters.map((m) => (
@@ -548,6 +568,7 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           snapEnabled={snapEnabled}
           onMeasurementAdd={handleAddMeasurement}
           onMeasurementRemove={handleRemoveMeasurement}
+          showTraffic={showTraffic}
         />
 
         {/* 間取り選択モーダル */}

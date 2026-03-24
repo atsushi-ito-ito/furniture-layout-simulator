@@ -550,6 +550,31 @@ body {
   background: rgba(249, 115, 22, 0.25);
 }
 
+/* 動線表示 */
+.traffic-toggle-btn {
+  margin-top: 4px;
+}
+
+.traffic-legend {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: 3px 4px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+.traffic-legend-item {
+  font-size: 14px;
+  text-align: center;
+}
+
+.traffic-legend-item.green  { color: rgba(34, 197, 94, 0.9); }
+.traffic-legend-item.yellow { color: rgba(251, 191, 36, 0.9); }
+.traffic-legend-item.red    { color: rgba(239, 68, 68, 0.9); }
+
 /* プラン情報（サイドバー上部） */
 
 .plan-info {
