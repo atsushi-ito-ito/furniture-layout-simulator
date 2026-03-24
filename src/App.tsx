@@ -338,8 +338,6 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
 
   const [zoom, setZoom] = useState<number>(BASE_ZOOM * DEFAULT_PERCENT);
 
-  const displayPercent = Math.round((zoom / BASE_ZOOM) * 100);
-
   const zoomOut = () => {
     setZoom((z) =>
       Math.max(MIN_ZOOM, Math.round((z - STEP) * 100) / 100)
@@ -433,15 +431,9 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
 
         {/* ズーム操作 */}
         <div className="sidebar-zoom">
-          <span className="sidebar-zoom-label">表示倍率</span>
           <div className="zoom-controls">
-            <button className="zoom-btn" onClick={zoomOut}>
-              －
-            </button>
-            <span className="zoom-label">{displayPercent}%</span>
-            <button className="zoom-btn" onClick={zoomIn}>
-              ＋
-            </button>
+            <button className="zoom-btn" onClick={zoomOut}>－</button>
+            <button className="zoom-btn" onClick={zoomIn}>＋</button>
           </div>
         </div>
 
