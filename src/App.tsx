@@ -338,18 +338,6 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
 
   const [zoom, setZoom] = useState<number>(BASE_ZOOM * DEFAULT_PERCENT);
 
-  const zoomOut = () => {
-    setZoom((z) =>
-      Math.max(MIN_ZOOM, Math.round((z - STEP) * 100) / 100)
-    );
-  };
-
-  const zoomIn = () => {
-    setZoom((z) =>
-      Math.min(MAX_ZOOM, Math.round((z + STEP) * 100) / 100)
-    );
-  };
-
   const handleAddFurniture = (masterId: string) => {
     const master = masters.find((m) => m.id === masterId);
     if (!master) return;
@@ -429,14 +417,6 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
           間取りを選択
         </button>
 
-        {/* ズーム操作 */}
-        <div className="sidebar-zoom">
-          <div className="zoom-controls">
-            <button className="zoom-btn" onClick={zoomOut}>－</button>
-            <button className="zoom-btn" onClick={zoomIn}>＋</button>
-          </div>
-        </div>
-
         {/* ─── 計測ツール ─── */}
         <div className="measure-section">
           <div className="measure-section-label">計測ツール</div>
@@ -491,13 +471,14 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
         {/* ─── 動線表示 ─── */}
         <div className="measure-section">
           <div className="measure-section-label">動線チェック</div>
-          <button
-            className={`measure-tool-btn traffic-toggle-btn${showTraffic ? " active" : ""}`}
-            style={{ width: "100%" }}
-            onClick={() => setShowTraffic((v) => !v)}
-          >
-            {showTraffic ? "🟢 動線表示 ON" : "⬜ 動線表示 OFF"}
-          </button>
+          <label className="snap-toggle-label">
+            <input
+              type="checkbox"
+              checked={showTraffic}
+              onChange={(e) => setShowTraffic(e.target.checked)}
+            />
+            動線表示
+          </label>
           {showTraffic && (
             <div className="traffic-legend">
               <span className="traffic-legend-item green">●</span><span>余裕（900mm〜）</span>
