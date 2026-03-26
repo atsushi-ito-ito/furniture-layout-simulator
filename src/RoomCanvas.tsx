@@ -110,6 +110,7 @@ export const RoomCanvas: React.FC<Props> = ({
   const [drag, setDrag] = useState<DragState>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const hasInteractedRef = useRef(false);
+  const pinchDistRef = useRef<number>(0);
 
   // 計測ツール ローカルステート
   const [placing, setPlacing]      = useState<{ x1Mm: number; y1Mm: number; snapped: boolean } | null>(null);
@@ -242,13 +243,13 @@ export const RoomCanvas: React.FC<Props> = ({
   const SNAP_MM = 10;
   const snapMm = (v: number) => !fineMode ? Math.round(v / SNAP_MM) * SNAP_MM : v;
 
-  // マウス座標 → room mm 変換
+  // 座標 → room mm 変換（マウス・タッチ共通）
   // 優先順位: 壁スナップ → 家具スナップ → 1mmモードならそのまま / それ以外は10mmグリッド
-  const toRoomMm = (e: React.MouseEvent): { xMm: number; yMm: number; snapped: boolean } | null => {
+  const coordsToRoomMm = (clientX: number, clientY: number): { xMm: number; yMm: number; snapped: boolean } | null => {
     const rect = viewportRef.current?.getBoundingClientRect();
     if (!rect) return null;
-    const localX = (e.clientX - rect.left - pan.x) / zoom;
-    const localY = (e.clientY - rect.top  - pan.y) / zoom;
+    const localX = (clientX - rect.left - pan.x) / zoom;
+    const localY = (clientY - rect.top  - pan.y) / zoom;
     const rawXMm = pxToMm(localX);
     const rawYMm = pxToMm(localY);
 
@@ -259,6 +260,10 @@ export const RoomCanvas: React.FC<Props> = ({
       if (furn.snapped) return furn;
     }
     return { xMm: snapMm(rawXMm), yMm: snapMm(rawYMm), snapped: false };
+  };
+
+  const toRoomMm = (e: React.MouseEvent): { xMm: number; yMm: number; snapped: boolean } | null => {
+    return coordsToRoomMm(e.clientX, e.clientY);
   };
 
   // ツール切り替え時に途中計測をキャンセル
@@ -567,6 +572,168 @@ export const RoomCanvas: React.FC<Props> = ({
 
   const handleMouseUpLeave = () => setDrag(null);
 
+  /* ─── タッチイベント（iPad 対応） ─── */
+
+  /** タッチ開始：計測の1点目／2点目確定、パン開始、ピンチ開始 */
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    hasInteractedRef.current = true;
+    const touches = Array.from(e.touches);
+
+    if (touches.length === 2) {
+      // ピンチズーム開始
+      const dx = touches[1].clientX - touches[0].clientX;
+      const dy = touches[1].clientY - touches[0].clientY;
+      pinchDistRef.current = Math.sqrt(dx * dx + dy * dy);
+      setDrag(null);
+      return;
+    }
+
+    if (touches.length === 1) {
+      const touch = touches[0];
+
+      if (activeTool !== "select") {
+        // 計測モード：タップで点を置く
+        const pos = coordsToRoomMm(touch.clientX, touch.clientY);
+        if (!pos) return;
+
+        if (!placing) {
+          setPlacing({ x1Mm: pos.xMm, y1Mm: pos.yMm, snapped: pos.snapped });
+          setPreviewEnd(pos);
+        } else {
+          let x2Mm = pos.xMm;
+          let y2Mm = pos.yMm;
+          if (activeTool === "measure-h") y2Mm = placing.y1Mm;
+          if (activeTool === "measure-v") x2Mm = placing.x1Mm;
+          const type: MeasureType =
+            activeTool === "measure-h" ? "h" :
+            activeTool === "measure-v" ? "v" : "free";
+          onMeasurementAdd({
+            id: crypto.randomUUID(),
+            type,
+            x1Mm: placing.x1Mm, y1Mm: placing.y1Mm,
+            x2Mm, y2Mm,
+          });
+          setPlacing(null);
+          setPreviewEnd(null);
+        }
+        return;
+      }
+
+      // 選択モード：パン開始
+      setSelectedId(null);
+      setDrag({
+        type: "pan",
+        startMouseX: touch.clientX,
+        startMouseY: touch.clientY,
+        startPanX: pan.x,
+        startPanY: pan.y,
+      });
+    }
+  };
+
+  /** タッチ移動：計測プレビュー、パン、ピンチズーム、家具ドラッグ */
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touches = Array.from(e.touches);
+
+    if (touches.length === 2) {
+      // ピンチズーム
+      const dx = touches[1].clientX - touches[0].clientX;
+      const dy = touches[1].clientY - touches[0].clientY;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      const oldDist = pinchDistRef.current;
+      if (oldDist > 0) {
+        const rect = viewportRef.current?.getBoundingClientRect();
+        if (rect) {
+          const centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+          const centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+          const scaleFactor = newDist / oldDist;
+          const newZoom = Math.min(maxZoom, Math.max(minZoom, zoom * scaleFactor));
+          if (newZoom !== zoom) {
+            const scale = newZoom / zoom;
+            setPan((prev) => ({
+              x: centerX - (centerX - prev.x) * scale,
+              y: centerY - (centerY - prev.y) * scale,
+            }));
+            onZoomChange(newZoom);
+          }
+        }
+      }
+      pinchDistRef.current = newDist;
+      return;
+    }
+
+    if (touches.length === 1) {
+      const touch = touches[0];
+
+      // 計測プレビュー
+      if (activeTool !== "select" && placing) {
+        const pos = coordsToRoomMm(touch.clientX, touch.clientY);
+        if (pos) setPreviewEnd(pos);
+        return;
+      }
+
+      if (!drag) return;
+
+      if (drag.type === "pan") {
+        const dx = touch.clientX - drag.startMouseX;
+        const dy = touch.clientY - drag.startMouseY;
+        setPan({ x: drag.startPanX + dx, y: drag.startPanY + dy });
+        return;
+      }
+
+      if (drag.type === "furniture") {
+        const f = placed.find((p) => p.id === drag.id);
+        if (!f) return;
+        const screenX = touch.clientX - drag.offsetX;
+        const screenY = touch.clientY - drag.offsetY;
+        const localX = (screenX - pan.x) / zoom;
+        const localY = (screenY - pan.y) / zoom;
+        let xMm = pxToMm(localX);
+        let yMm = pxToMm(localY);
+        if (wallSnapEnabled) {
+          const m = masters.find((mm) => mm.id === f.masterId);
+          const wMm = f.widthMm ?? m?.widthMm ?? 0;
+          const hMm = f.heightMm ?? m?.heightMm ?? 0;
+          const wall = snapFurnitureToWall(xMm, yMm, wMm, hMm);
+          if (wall.snapped) { xMm = wall.xMm; yMm = wall.yMm; }
+          else { xMm = snapMm(xMm); yMm = snapMm(yMm); }
+        } else {
+          xMm = snapMm(xMm);
+          yMm = snapMm(yMm);
+        }
+        onMove(f.id, xMm, yMm);
+      }
+    }
+  };
+
+  /** タッチ終了：ドラッグ状態クリア */
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length < 2) pinchDistRef.current = 0;
+    if (e.touches.length === 0) setDrag(null);
+  };
+
+  /** 家具タッチ開始：家具ドラッグ開始 */
+  const handleFurnitureTouchStart = (
+    e: React.TouchEvent<HTMLDivElement>,
+    id: string
+  ) => {
+    if (activeTool !== "select") return;
+    e.stopPropagation();
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const f = placed.find((p) => p.id === id);
+    if (!f) return;
+    const xPx = mmToPx(f.xMm) * zoom + pan.x;
+    const yPx = mmToPx(f.yMm) * zoom + pan.y;
+    setDrag({
+      type: "furniture",
+      id,
+      offsetX: touch.clientX - xPx,
+      offsetY: touch.clientY - yPx,
+    });
+    setSelectedId(id);
+  };
+
   /* JSX */
   return (
     <div
@@ -577,7 +744,10 @@ export const RoomCanvas: React.FC<Props> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUpLeave}
       onMouseLeave={handleMouseUpLeave}
-      style={{ cursor: activeTool !== "select" ? "crosshair" : undefined }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ cursor: activeTool !== "select" ? "crosshair" : undefined, touchAction: "none" }}
     >
       <div
         className="room-container"
@@ -644,6 +814,7 @@ export const RoomCanvas: React.FC<Props> = ({
                 transform: `translate(${x + w / 2}px, ${y + h / 2}px) rotate(${f.rotation}deg) translate(${-w / 2}px, ${-h / 2}px)`,
               }}
               onMouseDown={(e) => handleFurnitureMouseDown(e, f.id)}
+              onTouchStart={(e) => handleFurnitureTouchStart(e, f.id)}
             >
               {m.img ? (
                 <img

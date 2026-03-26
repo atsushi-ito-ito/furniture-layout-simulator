@@ -368,13 +368,14 @@ body {
 .controller-size-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  max-width: 100%;
 }
 
 .controller-size-row-label {
   font-size: 10px;
   color: #374151;
-  width: 30px;
+  width: 26px;
   flex-shrink: 0;
 }
 
@@ -383,13 +384,15 @@ body {
   align-items: center;
   gap: 2px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .controller-size-input {
   flex: 1;
   min-width: 0;
   font-size: 11px;
-  padding: 3px 4px;
+  padding: 3px 2px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
   text-align: center;
@@ -404,14 +407,15 @@ body {
   border: none;
   background: #e5e7eb;
   border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 12px;
+  padding: 3px 5px;
+  font-size: 11px;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
   color: #374151;
   font-weight: 600;
-  min-width: 22px;
+  min-width: 20px;
+  max-width: 26px;
   text-align: center;
 }
 
@@ -525,6 +529,15 @@ body {
   border-color: #8b6f47;
   color: #fff;
   font-weight: 600;
+}
+
+/* スナップ横並び行 */
+.snap-toggle-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* スナップトグル */

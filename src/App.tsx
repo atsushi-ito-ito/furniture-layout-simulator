@@ -425,7 +425,7 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
               className={`measure-tool-btn${activeTool === "select" ? " active" : ""}`}
               onClick={() => setActiveTool("select")}
               title="選択モード（家具の移動など）"
-            >✦ 選択</button>
+            >選択</button>
             <button
               className={`measure-tool-btn${activeTool === "measure-h" ? " active" : ""}`}
               onClick={() => setActiveTool("measure-h")}
@@ -435,29 +435,31 @@ const STEP = BASE_ZOOM * 0.05;     // 5%刻み
               className={`measure-tool-btn${activeTool === "measure-v" ? " active" : ""}`}
               onClick={() => setActiveTool("measure-v")}
               title="垂直方向を計測"
-            >↕ 垂直</button>
+            >垂直</button>
             <button
               className={`measure-tool-btn${activeTool === "measure-free" ? " active" : ""}`}
               onClick={() => setActiveTool("measure-free")}
               title="フリー方向（斜め含む）を計測"
             >⤡ フリー</button>
           </div>
-          <label className="snap-toggle-label">
-            <input
-              type="checkbox"
-              checked={wallSnapEnabled}
-              onChange={(e) => setWallSnapEnabled(e.target.checked)}
-            />
-            <span>壁スナップ</span>
-          </label>
-          <label className="snap-toggle-label">
-            <input
-              type="checkbox"
-              checked={fineMode}
-              onChange={(e) => setFineMode(e.target.checked)}
-            />
-            <span>1mm単位計測</span>
-          </label>
+          <div className="snap-toggle-row">
+            <label className="snap-toggle-label">
+              <input
+                type="checkbox"
+                checked={wallSnapEnabled}
+                onChange={(e) => setWallSnapEnabled(e.target.checked)}
+              />
+              <span>壁スナップ</span>
+            </label>
+            <label className="snap-toggle-label">
+              <input
+                type="checkbox"
+                checked={fineMode}
+                onChange={(e) => setFineMode(e.target.checked)}
+              />
+              <span>1mm単位計測</span>
+            </label>
+          </div>
           {measurements.length > 0 && (
             <button
               className="clear-measure-btn"
